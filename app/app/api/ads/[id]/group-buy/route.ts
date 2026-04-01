@@ -4,14 +4,16 @@ import Ad from "@/models/Ad";
 
 export const runtime = "nodejs";
 
+// 1. Update the type definition for context
 export async function POST(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> } // Changed to Promise
 ) {
   try {
     await connectDB();
 
-    const { id } = context.params; // ✅ FIXED
+    // 2. Await the params before destructuring
+    const { id } = await context.params; 
 
     const body = await req.json();
     const { userId } = body;
