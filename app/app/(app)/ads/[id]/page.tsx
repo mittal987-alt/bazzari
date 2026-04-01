@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "@/lib/api";
-import { useUserStore } from "@/store/userStore"; // Ensure this matches your store path
+import { useUserStore } from "@/store/userStore"; 
 import { 
   FiMapPin, FiClock, FiHeart, FiMessageSquare, 
   FiShare2, FiChevronLeft, FiChevronRight, FiShield, FiNavigation, FiCheck, FiZap, FiLoader
@@ -32,7 +32,7 @@ type Ad = {
 export default function AdDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { user } = useUserStore(); // Current logged-in user
+  const { user } = useUserStore(); 
 
   const [ad, setAd] = useState<Ad | null>(null);
   const [loading, setLoading] = useState(true);
@@ -104,7 +104,6 @@ export default function AdDetailsPage() {
     try {
       setJoiningGroupBuy(true);
       const res = await api.post(`/ads/${id}/group-buy`, { userId: user.id });
-      // Update local state to reflect join
       setAd(prev => {
         if (!prev) return prev;
         return {
@@ -124,7 +123,6 @@ export default function AdDetailsPage() {
   const handleStartChat = async () => {
     if (!user) return alert("Please login to start a conversation");
     
-    // Prevent seller from chatting with themselves (Matches backend logic)
     if (user.id === ad?.user._id) {
       return alert("You cannot start a conversation on your own listing.");
     }
@@ -132,7 +130,6 @@ export default function AdDetailsPage() {
     try {
       setStartingChat(true);
       const res = await api.post(`/chats/start/${ad?._id}`);
-      // Redirect to the chat room using the returned ID
       router.push(`/chats/${res.data.chatId}`);
     } catch (err: any) {
       if (err?.response?.status === 401) alert("Please login first");
@@ -146,11 +143,9 @@ export default function AdDetailsPage() {
     if (!ad) return;
     const [lng, lat] = ad.location?.coordinates ?? [];
     if (lat && lng) {
-      // Standard Google Maps URL for coordinates
       window.open(`https://www.google.com/maps?q=${lat},${lng}`, "_blank");
     } else if (ad.locationName) {
-      // Fallback: Search by name
-      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ad.locationName)}`, "_blank");
+      window.open(`https://www.google.com/maps/search/${encodeURIComponent(ad.locationName)}`, "_blank");
     }
   };
 
@@ -183,7 +178,9 @@ export default function AdDetailsPage() {
   if (!ad)
     return <div className="p-20 text-center font-bold">Listing not found.</div>;
 
+  // --- LOGIC CONSTANTS ---
   const isOwner = user?.id === ad?.user?._id;
+  const hasJoined = !!user?.id && (ad.groupBuyers || []).includes(user.id);
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] pb-20">
@@ -300,7 +297,6 @@ export default function AdDetailsPage() {
                  </div>
               </div>
 
-              {/* AI INSIGHTS */}
               {loadingInsight ? (
                 <div className="mb-6 flex items-center gap-2 text-[10px] font-black uppercase text-purple-400 animate-pulse">
                   <FiLoader className="animate-spin" /> AI Analyzing Marketplace...
@@ -324,9 +320,9 @@ export default function AdDetailsPage() {
 
               <button
                 onClick={handleJoinGroupBuy}
-                disabled={joiningGroupBuy || isOwner || (ad.groupBuyers || []).includes(user?.id)}
+                disabled={joiningGroupBuy || isOwner || hasJoined}
                 className={`w-full py-4 rounded-xl font-black text-[11px] uppercase tracking-widest shadow-lg transition-all flex items-center justify-center gap-2 ${
-                  (ad.groupBuyers || []).includes(user?.id)
+                  hasJoined
                     ? "bg-purple-600 text-white cursor-default"
                     : isOwner 
                       ? "bg-purple-100 text-purple-400 cursor-not-allowed" 
@@ -334,9 +330,9 @@ export default function AdDetailsPage() {
                 }`}
               >
                 {joiningGroupBuy && <FiLoader className="animate-spin" />}
-                {!joiningGroupBuy && (ad.groupBuyers || []).includes(user?.id) && <FiCheck />}
+                {!joiningGroupBuy && hasJoined && <FiCheck />}
                 <span className="ml-2">
-                  {joiningGroupBuy ? "Joining..." : (ad.groupBuyers || []).includes(user?.id) ? "You've Joined!" : "Join Group Buy"}
+                  {joiningGroupBuy ? "Joining..." : hasJoined ? "You've Joined!" : "Join Group Buy"}
                 </span>
               </button>
             </div>
